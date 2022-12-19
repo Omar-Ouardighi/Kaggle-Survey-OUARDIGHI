@@ -1,0 +1,95 @@
+---
+title: "VIS"
+author: "OUARDIGHI"
+date: "2022-12-14"
+output: html_document
+---
+```{r}
+library(tidyverse)
+```
+```{r}
+Survey_17 <- read.csv("Data/kaggle_survey_2017_responses.csv")
+Survey_18 <- read.csv("Data/kaggle_survey_2018_responses.csv")[-1,]
+Survey_19 <- read.csv("Data/kaggle_survey_2019_responses.csv")[-1,]
+Survey_20 <- read.csv("Data/kaggle_survey_2020_responses.csv")[-1,]
+Survey_21 <- read.csv("Data/kaggle_survey_2021_responses.csv")[-1,]
+Survey_22 <- read.csv("Data/kaggle_survey_2022_responses.csv")[-1,]
+```
+
+```{r}
+head(Survey_21)
+```
+
+
+```{r}
+
+gender2022 <- Survey_22 |> 
+    group_by(Q3) |> 
+    filter(Q3 %in% c('Man','Woman')) |> 
+    summarise(count2022 = n())
+
+gender2021 <- Survey_21 |> 
+    group_by(Q2) |> 
+    filter(Q2 %in% c('Man','Woman')) |> 
+    summarise(count2021 = n()) |> 
+    rename(Q3 = Q2)
+
+gender2020 <- Survey_20 |> 
+    group_by(Q2) |> 
+    filter(Q2 %in% c('Man','Woman')) |> 
+    summarise(count2020 = n()) |> 
+    rename(Q3 = Q2)
+
+gender2019 <- Survey_19 |> 
+    group_by(Q2) |> 
+    filter(Q2 %in% c('Male','Female')) |>
+    mutate(Q2 = case_when(Q2 == 'Male' ~ 'Man',
+                          Q2 == 'Female' ~ 'Woman')) |> 
+    summarise(count2019 = n()) |> 
+    rename(Q3 = Q2)
+
+gender2018 <- Survey_18 |> 
+    group_by(Q1) |> 
+    filter(Q1 %in% c('Male','Female')) |>
+    mutate(Q1 = case_when(Q1 == 'Male' ~ 'Man',
+                          Q1 == 'Female' ~ 'Woman')) |> 
+    summarise(count2018 = n()) |> 
+    rename(Q3 = Q1)
+
+gender2017 <- Survey_17 |> 
+    rename(Q3 = GenderSelect) |> 
+    group_by(Q3) |> 
+    filter(Q3 %in% c('Male','Female')) |>
+    mutate(Q3 = case_when(Q3 == 'Male' ~ 'Man',
+                          Q3 == 'Female' ~ 'Woman')) |> 
+    summarise(count2017 = n())  
+    
+```
+```{r}
+gender2022
+```
+
+```{r}
+Gender <- gender2017 |> 
+  left_join(gender2018, by = "Q3") |> 
+  left_join(gender2019, by = "Q3") |> 
+  left_join(gender2020, by = "Q3") |> 
+  left_join(gender2021, by = "Q3") |>
+  left_join(gender2022, by = "Q3")
+```
+
+```{r}
+Gender_long <- Gender %>%
+  reshape2::melt(., id.vars = "Q3", variable.name = 'year') |> 
+  mutate(year = str_sub(year,6,9) )
+
+```
+
+```{r}
+Gender_long |> 
+  #filter(Q3 == 'Man') |> 
+  ggplot(aes(year, value, colour = Q3)) +
+  geom_line(aes(group = Q3)) +
+  geom_point(size = 3)
+```
+

@@ -1,0 +1,167 @@
+---
+title: "Kaggle Survey"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(directlabels)
+library(ggthemes)
+options(repr.plot.width = 20.5, repr.plot.height = 16.8)
+
+theme_michau <- theme(axis.text = element_text(size = 17), plot.caption = element_text(size = 10.9), axis.title = element_text(size = 19.2), 
+                      axis.line = element_line(size = 0.6), plot.title = element_text(size = 25.1), plot.subtitle = element_text(size = 20),
+                      panel.background = element_rect(fill = "gray95"), plot.background = element_rect(fill = "gray95"),
+                      panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "None")
+```
+
+```{r}
+Survey_17 <- read.csv("Data/kaggle_survey_2017_responses.csv")
+Survey_18 <- read.csv("Data/kaggle_survey_2018_responses.csv")
+Survey_19 <- read.csv("Data/kaggle_survey_2019_responses.csv")
+Survey_20 <- read.csv("Data/kaggle_survey_2020_responses.csv")
+Survey_21 <- read.csv("Data/kaggle_survey_2021_responses.csv")
+Survey_22 <- read.csv("Data/kaggle_survey_2022_responses.csv")
+```
+
+```{r}
+Country_17 <- Survey_17 %>%
+  rename(Q3 = Country) %>%
+  group_by(Q3) %>%
+  summarise(Count_17 = n()) %>%
+  filter(!Q3 %in% c("", "Other", "I do not wish to disclose my location", "Republic of China")) %>%
+  mutate(Q3 = case_when(Q3 == "United States of America" ~ "United States",
+                Q3 == "United Kingdom of Great Britain and Northern Ireland" ~ "United Kingdom",
+                Q3 == "People 's Republic of China" ~ "China",
+                Q3 ==  "Iran, Islamic Republic of..." ~ "Iran",
+                Q3 == "Hong Kong (S.A.R.)" ~ "Hong Kong",
+                TRUE ~ Q3)) %>%
+  arrange(desc(Count_17)) %>%
+  mutate(Rank_17 = 1:nrow(.))
+
+```
+
+```{r}
+Country_18 <- Survey_18 %>%
+  group_by(Q3) %>%
+  summarise(Count_18 = n()) %>%
+  filter(!Q3 %in% c("", "Other", "I do not wish to disclose my location", "In which country do you currently reside?")) %>%
+  mutate(Q3 = case_when(Q3 == "United States of America" ~ "United States",
+                Q3 == "United Kingdom of Great Britain and Northern Ireland" ~ "United Kingdom",
+                Q3 == "People 's Republic of China" ~ "China",
+                Q3 ==  "Iran, Islamic Republic of..." ~ "Iran",
+                Q3 == "Hong Kong (S.A.R.)" ~ "Hong Kong",
+                TRUE ~ Q3)) %>%
+  arrange(desc(Count_18)) %>%
+  mutate(Rank_18 = 1:nrow(.)) 
+
+```
+
+```{r}
+Country_19 <- Survey_19 %>%
+  group_by(Q3) %>%
+  summarise(Count_19 = n()) %>%
+  filter(!Q3 %in% c("", "Other", "I do not wish to disclose my location", "In which country do you currently reside?")) %>%
+  mutate(Q3 = case_when(Q3 == "United States of America" ~ "United States",
+                Q3 == "United Kingdom of Great Britain and Northern Ireland" ~ "United Kingdom",
+                Q3 == "People 's Republic of China" ~ "China",
+                Q3 ==  "Iran, Islamic Republic of..." ~ "Iran",
+                Q3 == "Hong Kong (S.A.R.)" ~ "Hong Kong",
+                TRUE ~ Q3)) %>%
+  arrange(desc(Count_19)) %>%
+  mutate(Rank_19 = 1:nrow(.))
+
+Country_20 <- Survey_20 %>%
+  group_by(Q3) %>%
+  summarise(Count_20 = n()) %>%
+  filter(!Q3 %in% c("", "Other", "I do not wish to disclose my location", "In which country do you currently reside?")) %>%
+  mutate(Q3 = case_when(Q3 == "United States of America" ~ "United States",
+                Q3 == "United Kingdom of Great Britain and Northern Ireland" ~ "United Kingdom",
+                Q3 == "People 's Republic of China" ~ "China",
+                Q3 ==  "Iran, Islamic Republic of..." ~ "Iran",
+                Q3 == "Hong Kong (S.A.R.)" ~ "Hong Kong",
+                TRUE ~ Q3)) %>%
+  arrange(desc(Count_20)) %>%
+  mutate(Rank_20 = 1:nrow(.))
+
+Country_21 <- Survey_21 %>%
+  group_by(Q3) %>%
+  summarise(Count_21 = n()) %>%
+  filter(!Q3 %in% c("", "Other", "I do not wish to disclose my location", "In which country do you currently reside?")) %>%
+  mutate(Q3 = case_when(Q3 == "United States of America" ~ "United States",
+                Q3 == "United Kingdom of Great Britain and Northern Ireland" ~ "United Kingdom",
+                Q3 == "People 's Republic of China" ~ "China",
+                Q3 ==  "Iran, Islamic Republic of..." ~ "Iran",
+                Q3 == "Hong Kong (S.A.R.)" ~ "Hong Kong",
+                TRUE ~ Q3)) %>%
+  arrange(desc(Count_21)) %>%
+  mutate(Rank_21 = 1:nrow(.))
+
+Country_22 <- Survey_22 %>%
+  group_by(Q4) %>%
+  summarise(Count_22 = n()) %>%
+  filter(!Q4 %in% c("", "Other", "I do not wish to disclose my location", "In which country do you currently reside?")) %>%
+  mutate(Q4 = case_when(Q4 == "United States of America" ~ "United States",
+                Q4 == "United Kingdom of Great Britain and Northern Ireland" ~ "United Kingdom",
+                Q4 == "People 's Republic of China" ~ "China",
+                Q4 ==  "Iran, Islamic Republic of..." ~ "Iran",
+                Q4 == "Hong Kong (S.A.R.)" ~ "Hong Kong",
+                TRUE ~ Q4)) %>%
+  arrange(desc(Count_22)) %>%
+  mutate(Rank_22 = 1:nrow(.)) %>%
+  rename(Q3 = Q4)
+```
+
+```{r}
+Country <- Country_17 %>%
+  left_join(Country_18, by = "Q3") %>%
+  left_join(Country_19, by = "Q3") %>%
+  left_join(Country_20, by = "Q3") %>%
+  left_join(Country_21, by = "Q3") %>%
+  left_join(Country_22, by = "Q3")
+
+Chart <- Country %>%
+  select(Q3, Rank_17, Rank_18, Rank_19, Rank_20, Rank_21, Rank_22) %>%
+  reshape2::melt(., id.vars = "Q3") %>%
+  filter(is.na(value) == F)
+
+Chart <- Chart %>%
+  mutate(variable = gsub("Rank", "", variable))
+```
+
+
+```{r}
+RankChart <- function(countryName) {
+
+chart <- Chart %>%
+  mutate(CountryTake = ifelse(Q3 == countryName, "Yes", "No")) %>%
+    
+ggplot(., aes(x = variable, y = value, group = Q3)) +
+  geom_line(aes(colour = CountryTake), size = 0.75)+
+  geom_point(aes(fill = CountryTake, colour = CountryTake), shape = 21, size = 5.3)+
+  scale_color_manual(values = c("gray91", "red2"))+
+  scale_fill_manual(values = c("#f0f0f0", "red2"))+
+  scale_y_reverse(limits = c(62, 1), breaks = c(1, 10, 20, 30, 40, 50, 60))+
+  geom_dl(aes(label = Q3, colour = CountryTake), method = list(dl.trans(x = x + .3, cex = 1.32), dl.combine("last.bumpup")))+
+  geom_text(aes(label = value, y = value + 1, colour = CountryTake), size = 6.5)+
+  labs(title = paste0(countryName, " in the ranking of the popularity of respondents compared to other countries"),
+       subtitle = "in 2017-2022 Kaggle Machine Learning & Data Science Survey", y = "Position in ranking", x = "Year", caption = "© Made by Michau96/Kaggle") +
+  theme_fivethirtyeight()+
+  theme_michau
+
+print(chart)
+}
+```
+
+
+```{r}
+countries2 <- as.vector(unique(Chart$Q3))
+countries2 <- sort(unique(countries2))
+
+j = 1
+
+for (j in 1:length(countries2)){
+RankChart(countries2[j])
+    j = j +1
+}
+```
+
