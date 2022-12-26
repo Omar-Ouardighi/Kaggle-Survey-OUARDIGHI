@@ -6,6 +6,9 @@ output: html_document
 ---
 ```{r}
 library(tidyverse)
+library(jpeg)
+library(ggplot2)
+library(patchwork)
 ```
 ```{r}
 Survey_17 <- read.csv("Data/kaggle_survey_2017_responses.csv")
@@ -17,7 +20,7 @@ Survey_22 <- read.csv("Data/kaggle_survey_2022_responses.csv")[-1,]
 ```
 
 ```{r}
-head(Survey_21)
+Survey_22$Q2
 ```
 
 
@@ -69,6 +72,12 @@ gender2017 <- Survey_17 |>
 gender2022
 ```
 
+
+
+
+
+
+
 ```{r}
 Gender <- gender2017 |> 
   left_join(gender2018, by = "Q3") |> 
@@ -86,10 +95,123 @@ Gender_long <- Gender %>%
 ```
 
 ```{r}
+img_woman <- readJPEG("img/woman2.jpg", native = TRUE)
+img_man <- readJPEG("img/man2.jpg", native = TRUE)
+
 Gender_long |> 
-  #filter(Q3 == 'Man') |> 
   ggplot(aes(year, value, colour = Q3)) +
   geom_line(aes(group = Q3)) +
-  geom_point(size = 3)
+  geom_point(size = 3) +
+  theme(panel.background = element_blank(), legend.position = "none") +
+  scale_color_manual(values=c('#263252', '#FF3F34')) +
+  inset_element(p = img_woman, align_to = 'plot', left = 0.1,
+              bottom = 0.2,
+              right = 0.5,
+              top = 0.45) +
+  inset_element(p = img_man, align_to = 'plot', left = 0.85,
+              bottom = 0.6,
+              right = 0.7,
+              top = 0.85
+              ) + 
+  annotate('text',x=2,y = 15, label= 'something')
 ```
+```{r}
+Country2022 <- Survey_22 |> 
+  group_by(Q4) |> 
+  summarise(Count2022 = n()) |> 
+  filter(!Q4 %in% c("", "Other", "I do not wish to disclose my location", "In which country do you currently reside?")) |> 
+  mutate(Q4 = case_when(
+                Q4 == "United Kingdom of Great Britain and Northern Ireland" ~ "United Kingdom",
+                Q4 == "People 's Republic of China" ~ "China",
+                Q4 ==  "Iran, Islamic Republic of..." ~ "Iran",
+                TRUE ~ Q4)) |> 
+  arrange(desc(Count2022)) |> 
+  rename(sovereignt= Q4)
+
+Country2022
+
+```
+
+
+
+
+```{r}
+euro_map <- rnaturalearth::ne_countries(scale = 110, 
+                                        returnclass = 'sf', 
+                                        continent = "North America") |> 
+  left_join(Country2022, by = 'sovereignt') |> 
+  #filter(!is.na(Count2022))
+  mutate(Count2022 = ifelse(is.na(Count2022), 0, Count2022))
+
+```
+```{r}
+euro_map |> 
+  ggplot() +
+  geom_sf(aes(fill = Count2022)) +
+    #coord_sf(xlim = c(-15, 65),
+           #ylim = c(32, 72.5)) +
+  scale_fill_gradient(name = 'Kaggle\'s popularity',low='#FF3F34', high = '#263252') +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        rect = element_blank())
+```
+
+```{r}
+Country_age <- Survey_22 |> 
+    group_by(Q4) |> 
+    filter(!Q4 %in% c("", "Other", "I do not wish to disclose my location", "In which country do you currently reside?")) |> 
+    mutate(Q4 = case_when(
+                Q4 == "United Kingdom of Great Britain and Northern Ireland" ~ "United Kingdom",
+                Q4 == "People 's Republic of China" ~ "China",
+                Q4 ==  "Iran, Islamic Republic of..." ~ "Iran",
+                TRUE ~ Q4)) |> 
+    summarise(NumberOfUsers = n(), .groups = 'drop') |> 
+    rename(CountryName = Q4) |> 
+    filter(NumberOfUsers >= 80)
+
+Country_age <- Survey_22 |> 
+    filter(Q2 %in% c("18-21", "22-24", "25-29", "35-39" ,"30-34")) |> 
+    group_by(Q4) |> 
+    summarise(NumberOfLowerThan40 = n(), .groups = 'drop') |> 
+    rename(CountryName = Q4) |> 
+    select(CountryName, NumberOfLowerThan40) |> 
+inner_join(Country_age, by = "CountryName") |> 
+    mutate(Lower40yoRatio = NumberOfLowerThan40/NumberOfUsers)
+Country_age
+```
+```{r}
+Chart <- Country_age %>%
+    mutate(Color = case_when(Lower40yoRatio > quantile(Lower40yoRatio, probs = 0.75) ~ "1st fill", 
+                             Lower40yoRatio < quantile(Lower40yoRatio, probs = 0.07) ~ "2nd fill",
+                             between(Lower40yoRatio, quantile(Lower40yoRatio, probs = 0.07), quantile(Lower40yoRatio, probs = 0.75)) ~ "No fill"))
+
+Color <- Chart %>%
+    arrange(Lower40yoRatio) %>%
+    mutate(Color = case_when(Color == "1st fill" ~ "#263252",
+                             Color == "2nd fill" ~ "#FF3F34",
+                             Color == "No fill" ~ "gray65")) %>%
+    select(Color)
+
+ggplot(Chart, aes(reorder(CountryName, +Lower40yoRatio), Lower40yoRatio, fill = Color))+
+    geom_bar(col = "gray10", stat = "identity", width = 0.6)+
+    coord_flip()+
+    geom_text(aes(label = paste(100*round(Lower40yoRatio, 2), "%")), colour = "white", position = position_stack(vjust = 0.5), size = 1.4, fontface = "bold")+
+    scale_y_continuous(labels = scales::percent, limits = c(0,1.2), breaks = seq(0,0.8,0.2))+
+    scale_fill_manual(values = c("#263252", "#FF3F34", "gray65")) +
+    
+    annotate("text", x = 34.1, y = 1.05, label = "The top 10 countries\n with the\n highest rate are in\n Asia or North Africa", fontface = "bold", size = 2, colour = "#263252")+
+    annotate("text", x = 1.9, y = 0.64, label = "Last 3 countries are in Europe", fontface = "bold", size = 2, colour = "#FF3F34")+
+    
+    labs(x = "", y = "Ratio of people under 40 years old among responders", title = "Ratio of people under 40 years old by countries", 
+    subtitle = "In countries with at least 80 respondents", caption = "Data source: 2022 Kaggle Machine Learning & Data Science Survey ") +
+
+    theme(legend.position = "none", axis.text.y= element_text(colour = as.list(Color)$Color, size = 6), axis.text.x = element_text(size = 10, colour = "gray45"), panel.background = element_rect(fill = "white"), plot.background = element_rect(fill = "white"), plot.title = element_text(size = 18, colour = "gray35"), plot.subtitle = element_text(size = 12, colour = "gray62"),
+strip.background = element_rect(fill = "white"), strip.text = element_text(size = 12, colour = "gray25", face = "bold"), panel.grid.major = element_line(colour = "white"),
+axis.line = element_line(size = 0.4, colour = "gray35"), plot.caption = element_text(color = "gray65", face = "bold", size = 5), axis.title = element_text(size = 12, colour = "gray25"))
+
+```
+
 
