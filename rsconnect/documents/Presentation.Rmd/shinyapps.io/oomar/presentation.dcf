@@ -1,0 +1,13 @@
+name: presentation
+title:
+username:
+account: oomar
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7954958
+bundleId: 6681464
+url: https://oomar.shinyapps.io/presentation/
+when: 1672327077.02607
+lastSyncTime: 1672327077.02609
+asMultiple: FALSE
+asStatic: FALSE

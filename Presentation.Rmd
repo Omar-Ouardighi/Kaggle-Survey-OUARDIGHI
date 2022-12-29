@@ -13,7 +13,19 @@ library(tidyverse)
 library(jpeg)
 library(patchwork)
 library(treemapify)
+library(rnaturalearth)
 ```
+
+```{r data}
+Country2022 <- read.csv('data_output/Country2022.csv')
+Country_age <- read.csv('data_output/Country_age.csv')
+Gender <- read.csv('data_output/Gender.csv')
+img_woman <- readJPEG("img/woman2.jpg", native = TRUE)
+img_man <- readJPEG("img/man2.jpg", native = TRUE)
+Prog_lang <-  read.csv('data_output/Prog_lang.csv')
+```
+
+
 
 Inputs {.sidebar data-width=150}
 -------------------------------------
@@ -31,9 +43,8 @@ Column {data-width=600 .tabset}
 ### Kaggle's Popularity 
 
 ```{r}
-Country2022 <- read.csv('data_output/Country2022.csv')
 
-renderPlot({
+shiny::renderPlot({
   
 map <- rnaturalearth::ne_countries(scale = 110, 
                                         returnclass = 'sf', 
@@ -59,7 +70,7 @@ map |>
 ### Ratio of people under 40
 
 ```{r}
-Country_age <- read.csv('data_output/Country_age.csv')
+
 
 ggplot(Country_age, aes(reorder(CountryName, +Lower40yoRatio), Lower40yoRatio, fill = Color))+
     geom_bar(col = "gray10", stat = "identity", width = 0.6)+
@@ -83,9 +94,6 @@ Column {data-width=400}
 ### Gender Participation
 
 ```{r}
-Gender <- read.csv('data_output/Gender.csv')
-img_woman <- readJPEG("img/woman2.jpg", native = TRUE)
-img_man <- readJPEG("img/man2.jpg", native = TRUE)
 
 Gender |> 
   ggplot(aes(year, value, colour = Q3)) +
@@ -113,7 +121,6 @@ axis.line = element_line(size = 0.4, colour = "gray35"), plot.caption = element_
 ### Programming Languages
 
 ```{r}
-Prog_lang <-  read.csv('data_output/Prog_lang.csv')
 Prog_lang |> 
   filter(count > 1400) |> 
 ggplot( aes(area = count, fill = count, label = languages)) +
