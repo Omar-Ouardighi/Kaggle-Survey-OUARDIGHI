@@ -1,0 +1,13 @@
+name: kaggle_survey_presentation
+title: kaggle_survey_presentation
+username:
+account: oomar
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7955843
+bundleId: 6682139
+url: https://oomar.shinyapps.io/kaggle_survey_presentation/
+when: 1672345365.06373
+lastSyncTime: 1672345365.06376
+asMultiple: FALSE
+asStatic: FALSE
