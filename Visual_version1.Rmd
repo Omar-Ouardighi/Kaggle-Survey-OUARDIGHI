@@ -9,19 +9,18 @@ library(tidyverse)
 library(jpeg)
 library(ggplot2)
 library(patchwork)
+library(treemapify)
 ```
 ```{r}
-Survey_17 <- read.csv("Data/kaggle_survey_2017_responses.csv")
+Survey_17 <- read.csv("Data/kaggle_survey_2017_responses.csv" )
 Survey_18 <- read.csv("Data/kaggle_survey_2018_responses.csv")[-1,]
 Survey_19 <- read.csv("Data/kaggle_survey_2019_responses.csv")[-1,]
 Survey_20 <- read.csv("Data/kaggle_survey_2020_responses.csv")[-1,]
 Survey_21 <- read.csv("Data/kaggle_survey_2021_responses.csv")[-1,]
-Survey_22 <- read.csv("Data/kaggle_survey_2022_responses.csv")[-1,]
+Survey_22 <- read.csv("Data/kaggle_survey_2022_responses.csv",na.strings = "" )[-1,]
 ```
 
-```{r}
-Survey_22$Q2
-```
+## Gender Participation
 
 
 ```{r}
@@ -95,6 +94,10 @@ Gender_long <- Gender %>%
 ```
 
 ```{r}
+write.csv(Gender_long, 'data_output/Gender.csv')
+```
+
+```{r}
 img_woman <- readJPEG("img/woman2.jpg", native = TRUE)
 img_man <- readJPEG("img/man2.jpg", native = TRUE)
 
@@ -102,19 +105,25 @@ Gender_long |>
   ggplot(aes(year, value, colour = Q3)) +
   geom_line(aes(group = Q3)) +
   geom_point(size = 3) +
-  theme(panel.background = element_blank(), legend.position = "none") +
   scale_color_manual(values=c('#263252', '#FF3F34')) +
-  inset_element(p = img_woman, align_to = 'plot', left = 0.1,
-              bottom = 0.2,
-              right = 0.5,
-              top = 0.45) +
-  inset_element(p = img_man, align_to = 'plot', left = 0.85,
-              bottom = 0.6,
-              right = 0.7,
-              top = 0.85
-              ) + 
-  annotate('text',x=2,y = 15, label= 'something')
+  labs(x = "Years", y = "Number of Participants", title = "Variation of Gender Participation through the years", 
+    subtitle = "Most of the kagglers are Men (77%) and Female Kagglers are (22%)", caption = "Data source: 2022 Kaggle Machine Learning & Data Science Survey ") +
+
+    theme(legend.position = "none", axis.text.y= element_text( size = 10), axis.text.x = element_text(size = 10, colour = "gray45"), panel.background = element_rect(fill = "white"), plot.background = element_rect(fill = "white"), plot.title = element_text(size = 18, colour = "gray35"), plot.subtitle = element_text(size = 12, colour = "gray62"),
+strip.background = element_rect(fill = "white"), strip.text = element_text(size = 12, colour = "gray25", face = "bold"), panel.grid.major = element_line(colour = "white"),
+axis.line = element_line(size = 0.4, colour = "gray35"), plot.caption = element_text(color = "gray65", face = "bold", size = 5), axis.title = element_text(size = 12, colour = "gray25")) +
+    inset_element(p = img_woman, align_to = 'plot', left = 0.1,
+               bottom = 0.2,
+               right = 0.2,
+               top = 0.45) +
+   inset_element(p = img_man, align_to = 'plot', left = 0.95,
+               bottom = 0.6,
+               right = 0.9,
+               top = 0.83
+               ) 
 ```
+### Kaggle's popularity in the world
+
 ```{r}
 Country2022 <- Survey_22 |> 
   group_by(Q4) |> 
@@ -131,6 +140,9 @@ Country2022 <- Survey_22 |>
 Country2022
 
 ```
+```{r}
+write.csv(Country2022, 'data_output/Country2022.csv')
+```
 
 
 
@@ -138,9 +150,9 @@ Country2022
 ```{r}
 euro_map <- rnaturalearth::ne_countries(scale = 110, 
                                         returnclass = 'sf', 
-                                        continent = "North America") |> 
+                                        continent = NULL) |> 
   left_join(Country2022, by = 'sovereignt') |> 
-  #filter(!is.na(Count2022))
+  
   mutate(Count2022 = ifelse(is.na(Count2022), 0, Count2022))
 
 ```
@@ -148,16 +160,18 @@ euro_map <- rnaturalearth::ne_countries(scale = 110,
 euro_map |> 
   ggplot() +
   geom_sf(aes(fill = Count2022)) +
-    #coord_sf(xlim = c(-15, 65),
-           #ylim = c(32, 72.5)) +
   scale_fill_gradient(name = 'Kaggle\'s popularity',low='#FF3F34', high = '#263252') +
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        rect = element_blank())
+  labs( title = "Kaggle's Popularity in The World", 
+     caption = "Data source: 2022 Kaggle Machine Learning & Data Science Survey ") +
+  theme(axis.text.x = element_blank(),axis.text.y = element_blank(),
+        axis.ticks = element_blank(),axis.title.x = element_blank(),
+        axis.title.y = element_blank(),rect = element_blank(),
+        plot.title = element_text(size = 18, colour = "gray35", hjust = 1), 
+        plot.caption = element_text(color = "gray65", face = "bold", size = 5))
 ```
+
+
+### Ratio of people under 40
 
 ```{r}
 Country_age <- Survey_22 |> 
@@ -179,27 +193,19 @@ Country_age <- Survey_22 |>
     rename(CountryName = Q4) |> 
     select(CountryName, NumberOfLowerThan40) |> 
 inner_join(Country_age, by = "CountryName") |> 
-    mutate(Lower40yoRatio = NumberOfLowerThan40/NumberOfUsers)
+    mutate(Lower40yoRatio = NumberOfLowerThan40/NumberOfUsers) |> 
+    mutate(Color = case_when(Lower40yoRatio > quantile(Lower40yoRatio, probs = 0.75) ~ "#263252", 
+                             Lower40yoRatio < quantile(Lower40yoRatio, probs = 0.07) ~ "#FF3F34",
+                             between(Lower40yoRatio, quantile(Lower40yoRatio, probs = 0.07), quantile(Lower40yoRatio, probs = 0.75)) ~ "gray65")) |> 
+  arrange(Lower40yoRatio)
 Country_age
 ```
 ```{r}
-Chart <- Country_age %>%
-    mutate(Color = case_when(Lower40yoRatio > quantile(Lower40yoRatio, probs = 0.75) ~ "1st fill", 
-                             Lower40yoRatio < quantile(Lower40yoRatio, probs = 0.07) ~ "2nd fill",
-                             between(Lower40yoRatio, quantile(Lower40yoRatio, probs = 0.07), quantile(Lower40yoRatio, probs = 0.75)) ~ "No fill"))
 
-Color <- Chart %>%
-    arrange(Lower40yoRatio) %>%
-    mutate(Color = case_when(Color == "1st fill" ~ "#263252",
-                             Color == "2nd fill" ~ "#FF3F34",
-                             Color == "No fill" ~ "gray65")) %>%
-    select(Color)
-
-ggplot(Chart, aes(reorder(CountryName, +Lower40yoRatio), Lower40yoRatio, fill = Color))+
+ggplot(Country_age, aes(reorder(CountryName, +Lower40yoRatio), Lower40yoRatio, fill = Color))+
     geom_bar(col = "gray10", stat = "identity", width = 0.6)+
     coord_flip()+
-    geom_text(aes(label = paste(100*round(Lower40yoRatio, 2), "%")), colour = "white", position = position_stack(vjust = 0.5), size = 1.4, fontface = "bold")+
-    scale_y_continuous(labels = scales::percent, limits = c(0,1.2), breaks = seq(0,0.8,0.2))+
+    scale_y_continuous(labels = scales::percent, limits = c(0,1.2), breaks = seq(0,0.8,0.2), expand = c(0, 0),)+
     scale_fill_manual(values = c("#263252", "#FF3F34", "gray65")) +
     
     annotate("text", x = 34.1, y = 1.05, label = "The top 10 countries\n with the\n highest rate are in\n Asia or North Africa", fontface = "bold", size = 2, colour = "#263252")+
@@ -208,10 +214,43 @@ ggplot(Chart, aes(reorder(CountryName, +Lower40yoRatio), Lower40yoRatio, fill = 
     labs(x = "", y = "Ratio of people under 40 years old among responders", title = "Ratio of people under 40 years old by countries", 
     subtitle = "In countries with at least 80 respondents", caption = "Data source: 2022 Kaggle Machine Learning & Data Science Survey ") +
 
-    theme(legend.position = "none", axis.text.y= element_text(colour = as.list(Color)$Color, size = 6), axis.text.x = element_text(size = 10, colour = "gray45"), panel.background = element_rect(fill = "white"), plot.background = element_rect(fill = "white"), plot.title = element_text(size = 18, colour = "gray35"), plot.subtitle = element_text(size = 12, colour = "gray62"),
-strip.background = element_rect(fill = "white"), strip.text = element_text(size = 12, colour = "gray25", face = "bold"), panel.grid.major = element_line(colour = "white"),
-axis.line = element_line(size = 0.4, colour = "gray35"), plot.caption = element_text(color = "gray65", face = "bold", size = 5), axis.title = element_text(size = 12, colour = "gray25"))
+    theme(legend.position = "none", axis.text.y= element_text(colour = as.list(Country_age)$Color, size = 6), axis.text.x = element_text(size = 6, colour = "gray45"), panel.background = element_rect(fill = "white"), plot.title = element_text(size = 18, colour = "gray35"), plot.subtitle = element_text(size = 12, colour = "gray62"),
+axis.line = element_line(size = 0.4, colour = "gray35"), plot.caption = element_text(color = "gray65", face = "bold", size = 5), axis.title = element_text(size = 10, colour = "gray25"))
+
+
 
 ```
+## Programming languages used
+
+```{r}
+Prog_lang <- Survey_22 |> 
+    summarise( across(starts_with('Q12'), ~ sum(!is.na(.x)))) |> 
+    rename(Python=Q12_1, R=Q12_2 , SQL=Q12_3, C = Q12_4, C_sharp = Q12_5, Cpp = Q12_6, Java = Q12_7, 
+           JavaScript = Q12_8, Bash= Q12_9, PHP = Q12_10, MATLAB = Q12_11, Julia = Q12_12,
+          Go = Q12_13, None = Q12_14, Other = Q12_15) |> 
+    pivot_longer(everything(),names_to = 'languages', values_to = 'count') 
+Prog_lang
+```
+
+
+```{r}
+Prog_lang |> 
+  filter(count > 1400) |> 
+ggplot( aes(area = count, fill = count, label = languages)) +
+  geom_treemap() +
+  geom_treemap_text(colour = "white",
+                    place = "centre",
+                    size = 15) +
+  scale_fill_gradient(low='#FF3F34', high = '#263252') +
+   labs( title = "Programming Languages used by Kagglers", 
+    subtitle = "On a regular basis", caption = "Data source: 2022 Kaggle Machine Learning & Data Science Survey ") +
+  theme(legend.position = "none", plot.title = element_text(size = 18, colour = "gray35"), plot.subtitle = element_text(size = 12, colour = "gray62"),  plot.caption = element_text(color = "gray65", face = "bold", size = 5))
+```
+```{r}
+write.csv(Prog_lang, 'data_output/Prog_lang.csv')
+write.csv(Country_age, 'data_output/Country_age.csv')
+```
+
+
 
 
