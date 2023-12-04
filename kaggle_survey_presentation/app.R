@@ -108,6 +108,8 @@ server <- function(input, output) {
   }
   )
   
+  
+  
   output$plot3 <- renderPlot({
     ggplot(Country_age, aes(reorder(CountryName, +Lower40yoRatio), Lower40yoRatio, fill = Color))+
       geom_bar(col = "gray10", stat = "identity", width = 0.6)+
